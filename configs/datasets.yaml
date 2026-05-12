@@ -1,0 +1,137 @@
+VAE_DATASETS:
+  data1:
+    id: 1.00C
+    path: data/raw/time_data_C_1.0.csv
+    discharge_symbol: -1
+    cycle_min: 1
+    cycle_max: 5000
+    temperature: 25.0
+    charging_rate: 1.0
+    discharging_rate: 1.0
+
+  data2:
+    id: 0.75C
+    path: data/raw/time_data_C_0.75.csv
+    discharge_symbol: -1
+    cycle_min: 1
+    cycle_max: 5000
+    temperature: 25.0
+    charging_rate: 0.75
+    discharging_rate: 1.0
+
+  data3:
+    id: 0.50C
+    path: data/raw/time_data_C_0.5.csv
+    discharge_symbol: -1
+    cycle_min: 1
+    cycle_max: 5000
+    temperature: 25.0
+    charging_rate: 0.5
+    discharging_rate: 1.0
+
+  data4:
+    id: 0.30C
+    path: data/raw/time_data_C_0.3.csv
+    discharge_symbol: -1
+    cycle_min: 1
+    cycle_max: 5000
+    temperature: 25.0
+    charging_rate: 0.3
+    discharging_rate: 1.0
+
+  data5:
+    id: 0.20C
+    path: data/raw/time_data_C_0.2.csv
+    discharge_symbol: -1
+    cycle_min: 1
+    cycle_max: 5000
+    temperature: 25.0
+    charging_rate: 0.2
+    discharging_rate: 1.0
+
+  data6:
+    id: 0.60C
+    path: data/raw/time_data_C_0.6.csv
+    discharge_symbol: -1
+    cycle_min: 1
+    cycle_max: 5000
+    temperature: 25.0
+    charging_rate: 0.6
+    discharging_rate: 1.0
+
+  data7:
+    id: 0.85C
+    path: data/raw/time_data_C_0.85.csv
+    discharge_symbol: -1
+    cycle_min: 1
+    cycle_max: 5000
+    temperature: 25.0
+    charging_rate: 0.85
+    discharging_rate: 1.0
+
+GP_INTERPOLATION_DATASETS:
+    data8:
+      id: 0.70C
+      path: data/raw/time_data_C_0.7.csv
+      interpolation_latent_path: artifacts/gp_interpolation/latent_space_0.70C.csv
+      discharge_symbol: -1
+      cycle_min: 1
+      cycle_max: 5000
+      temperature: 25.0
+      charging_rate: 0.70
+      discharging_rate: 1.0
+
+
+    data9:
+      id: 0.55C
+      path: data/raw/time_data_C_0.55.csv
+      interpolation_latent_path: artifacts/gp_interpolation/latent_space_0.55C.csv
+      discharge_symbol: -1
+      cycle_min: 1
+      cycle_max: 5000
+      temperature: 25.0
+      charging_rate: 0.55
+      discharging_rate: 1.0
+
+GP_DATASETS:
+  data1:
+    crate_label: 1.00C
+    id: 1.00C
+    charging_rate: 1.0
+    latent_csv: ../artifacts/latent_space_data1/latent_space.csv
+  
+  data2:
+    crate_label: 0.75C
+    id: 0.75C
+    charging_rate: 0.75
+    latent_csv: ../artifacts/latent_space_data2/latent_space.csv
+  
+  data3:
+    crate_label: 0.50C
+    id: 0.50C
+    charging_rate: 0.5
+    latent_csv: ../artifacts/latent_space_data3/latent_space.csv
+  
+  data4:
+    crate_label: 0.30C
+    id: 0.30C
+    charging_rate: 0.3
+    latent_csv: ../artifacts/latent_space_data4/latent_space.csv
+  
+  data5:
+    crate_label: 0.20C
+    id: 0.20C
+    charging_rate: 0.2
+    latent_csv: ../artifacts/latent_space_data5/latent_space.csv
+  
+  data6:
+    crate_label: 0.60C
+    id: 0.60C
+    charging_rate: 0.6
+    latent_csv: ../artifacts/latent_space_data6/latent_space.csv
+  
+  data7:
+    crate_label: 0.85C
+    id: 0.85C
+    charging_rate: 0.85
+    latent_csv: ../artifacts/latent_space_data7/latent_space.csv

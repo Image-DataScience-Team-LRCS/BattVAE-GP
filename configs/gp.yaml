@@ -1,0 +1,140 @@
+GENERAL:
+  name: 2D_GP
+  model_type: gp
+  evaluation_strategy: simple_holdout
+  training: true
+  paths_file: paths.yaml
+  datasets_file: datasets.yaml
+  holdout_datasets:
+    - data6
+    - data2
+  random_seed: 42
+
+
+ANALYSIS:
+  run_after_training: true
+  cycle_bins: 10
+
+
+INTERPOLATION:
+  enabled: false
+  interpolation_datasets:
+    - data8
+    - data9
+  use_saved_deployment_models: true
+  feature_columns:
+    - Cycle
+    - c_rate
+  target_columns:
+    - z1
+    - z2
+
+
+RUNTIME:
+  device: auto
+  use_cuda: true
+  dtype: float32
+
+
+FEATURES:
+  input_columns:
+    - Cycle
+    - c_rate
+  target_columns:
+    - z1
+    - z2
+  group_column: dataset_key
+  cycle_column: Cycle
+
+
+NORMALIZATION:
+  feature_method: robust
+  feature_column_methods:
+    Cycle: robust
+    c_rate: robust
+  target_method: robust
+  target_column_methods:
+    z1: robust
+    z2: robust
+
+
+SELECTION:
+  metric: nll
+  refit_epoch_strategy: median
+
+
+MODEL:
+  type: sparse_gp_2d 
+  kernel: rbf
+  lengthscale: 2.0
+  variance: 2.0
+  noise_variance: 0.0025
+  rq_alpha: 0.5
+  inducing_points: 256
+  inducing_method: per_crate_cycle
+  jitter: 1e-6
+
+
+TRAINING:
+  epochs: 300
+  batch_size: 512
+  eval_batch_size: 8192
+  learning_rate: 0.01
+  weight_decay: 0.0
+  patience: 8
+  min_delta: 0.0001
+  log_every_epochs: 1
+  show_progress: false
+  scheduler:
+    name: reduce_on_plateau
+    mode: min
+    factor: 0.5
+    patience: 3
+    threshold: 0.0001
+    threshold_mode: rel
+    cooldown: 0
+    min_lr: 1e-5
+
+
+EARLY_STOPPING:
+  enabled: true
+  monitor: val_nll
+  patience: 8
+  min_delta: 0.0001
+  validation_fraction: 0.1
+
+
+SEARCH:
+  enabled: false
+  lengthscale_candidates:
+    - 0.5
+    - 1.0
+    - 2.0
+  variance_candidates:
+    - 0.5
+    - 1.0
+    - 2.0
+  noise_variance_candidates:
+    - 0.001
+    - 0.0025
+    - 0.01
+  rq_alpha_candidates:
+    - 0.5
+    - 1.0
+    - 2.0
+
+
+STUDY:
+  run_kernel_ablation: false
+  kernel_candidates:
+    - rbf
+    - matern32
+    - matern52
+    - rq
+    - rq+linear
+  run_feature_normalization_ablation: false
+  feature_normalization_candidates:
+    - minmax
+  run_target_normalization_ablation: false
+  target_normalization_candidates:
+    - standard

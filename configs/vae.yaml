@@ -1,0 +1,121 @@
+GENERAL:
+  experiment_name: chk_correction_
+  training: true
+  inference: false
+  inference_interpolation: false
+  resume_training: false
+  debug_mode: false
+  show_progress: false
+  paths_file: paths.yaml
+  datasets_file: datasets.yaml
+  seed: 42
+  training_datasets:
+    - data1
+    - data2
+    - data3
+    - data4
+    - data5
+    - data7
+  validation_datasets:
+    - data6
+
+
+
+HYPER_PARAMETERS:
+  input_seq_len: 256  
+  input_channel: 12
+  latent_dim: 2
+  dropout_rate: 0.1
+  conditional_vector_dim: 1
+
+  freeze_baseline_epoch: 2
+
+  # training parameters
+  train_split: 1.0
+  batch_size: 64
+  epochs: 500
+  
+  lr_schedule:
+    learning_rate: 0.001
+    weight_decay: 0.0
+    warmup_epochs: 5
+    decay_factor: 0.5
+    min_lr: 1.0e-05
+    patience: 8
+
+  gp_schedule:
+    enable: false
+    learning_rate: 0.001
+    weight_decay: 0.0
+    scale_factor: 0.001
+    kernel_type: degradation_aware
+    num_inducing: 1024
+
+  early_stopping:
+    warmup_epochs: 10
+    patience: 30
+    min_delta: 1.0e-05
+    monitor_metric: val_loss
+
+  soh_factor: 0.001   # 0.1
+  use_mask_padding: True
+  padding_value: -9999.0
+  save_every_reconstructions: false
+
+  kl_annealing:
+    warmup_epochs: 2
+    start_factor: 0.0
+    target_factor: 0.0005
+    # min_loss: 0.1 
+
+  latent_dependence:
+    enabled: false
+    weight: 0.01
+    cycle_latent_index: 0
+    crate_latent_index: 1
+    swap_penalty_weight: 0.20
+    min_abs_correlation: 0.10
+
+  physics_head:
+    enabled: false
+  
+  d_model: 64
+  num_heads: 4
+  num_transformer_encoder_layers: 4
+  num_transformer_decoder_layers: 4
+  
+  n_fourier_encoder: 4
+  n_fourier_baseline_decoder: 1
+  n_fourier_residual_decoder: 2
+  max_freq: 2.0
+
+
+NORMALIZATION:
+  fit_on: train_only  # fit stats on the training split only; val/inference reuse frozen train stats
+  scope: global
+  epsilon: 1.0e-6
+  interior_only: true
+  interior_trim_frac: 0.02
+  apply_on_masked_only: true
+  voltage:
+    mode: phys_minmax
+    target_range: zero_to_one   # minus_one_to_one / zero_to_one
+    v_min: 2.5
+    v_max: 4.2
+  dvdq:
+    mode: robust_zscore
+    clip_k: 10.0
+  d2vdq2:
+    mode: robust_zscore
+    clip_k: 10.0
+    pclip: 99.5
+  ica:
+    mode: asinh_robust
+    tau: auto
+    clip_k: 10.0
+  hyst:
+    mode: phys_minmax
+    clip_k: 10.0
+  dqdv:
+    mode: robust_zscore
+    clip_k: 10.0

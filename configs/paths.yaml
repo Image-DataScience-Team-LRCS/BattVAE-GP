@@ -1,0 +1,11 @@
+PATHS:
+  visualization: artifacts/visualizations
+  metrics: artifacts/metrics
+  pretraining_data: data/processed/pretraining_data
+  predicted_data: data/processed
+  model_save: artifacts/saved_models
+  latent_space_save: artifacts/latent_space
+  gp_output_dir: artifacts/gp_outputs
+  gp_model_summary_csv: artifacts/gp_outputs/deployment_models.csv
+  vae_interpolation_dir: artifacts/vae_interpolation
+
