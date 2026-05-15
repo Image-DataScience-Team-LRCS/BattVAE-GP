@@ -160,11 +160,11 @@ def gp_label_from_csv(csv_path: Path) -> str:
 
 def annotate_standard_label(ax: plt.Axes, xy: np.ndarray, label: str, dx: float, dy: float) -> None:
     label_loc = {
-        "1.00C": (xy[0] - 5 * dx, xy[1] + 6 * dy),
-        "0.85C": (xy[0] -10 * dx, xy[1] + 6 * dy),
-        "0.75C": (xy[0] - 5 * dx, xy[1] + 7 * dy),
-        "0.60C": (xy[0] - 5 * dx, xy[1] + 7 * dy),
-        "0.50C": (xy[0] - 3 * dx, xy[1] + 6 * dy),
+        "1.00C": (xy[0] - 4 * dx, xy[1] - 30 * dy),
+        "0.85C": (xy[0] -12 * dx, xy[1] + 12 * dy),
+        "0.75C": (xy[0] - 7 * dx, xy[1] + 9 * dy),
+        "0.60C": (xy[0] - 5 * dx, xy[1] + 14 * dy),
+        "0.50C": (xy[0] + 0 * dx, xy[1] + 7 * dy),
         "0.30C": (xy[0] - 8 * dx, xy[1] + 3 * dy),
         "0.20C": (xy[0] - 8 * dx, xy[1] + 5 * dy),
     }
@@ -181,13 +181,23 @@ def annotate_standard_label(ax: plt.Axes, xy: np.ndarray, label: str, dx: float,
         zorder=5,
     )
 
+    ax.annotate(
+        "",
+        xy=(xy[0], xy[1]),
+        xytext=(text_x, text_y),
+        arrowprops={"arrowstyle": "->", "lw": 1.0, "color": "#030200"},
+        ha="center",
+        va="center",
+        zorder=4,
+    )
+
 
 def annotate_gp_label(ax: plt.Axes, xy: np.ndarray, label: str, dx: float, dy: float) -> None:
     ax.annotate(
         label,
         xy=(xy[0], xy[1]),
-        xytext=(xy[0] - dx * 2, xy[1] -  dy * 2),
-        arrowprops={"arrowstyle": "->", "lw": 1.0, "color": "#8a5300"},
+        xytext=(xy[0] - dx * 2, xy[1] -  dy * 4),
+        arrowprops={"arrowstyle": "->", "lw": 1.0, "color": "#030200"},
         ha="left",
         va="center",
         zorder=7,
