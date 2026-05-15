@@ -1,13 +1,3 @@
-# decoder.py
-# Minimal, condition-free decoder for a vanilla VAE with:
-#   x_hat(q) = baseline(q) + residual(q, z)
-#
-# Requirements implemented:
-# 1) Condition-free: no FiLM/conditioning used
-# 2) Baseline can be frozen later via freeze_baseline()
-# 3) Only the first channel of q_cap_fourier is used (phase==0)
-# 4) Reconstruction is baseline + residual
-
 import math
 from typing import Optional
 
@@ -105,9 +95,6 @@ class ResidualNet(nn.Module):
         z_dim: int,
         d_model: int,
         out_dim: int,
-        cond_dim: int = 0,
-        use_cond: bool = False,
-        cond_init_scale: float = 0.25,
         n_layers: int = 2,
         n_fourier: int = 8,
         max_freq: float = 64.0,
@@ -120,17 +107,7 @@ class ResidualNet(nn.Module):
 
         self.q_proj = nn.Linear(q_feat_dim, d_model)
         self.z_proj = nn.Linear(z_dim, d_model)
-        self.use_cond = bool(use_cond) and (cond_dim > 0)
-        if self.use_cond:
-            self.cond_proj = nn.Sequential(
-                nn.Linear(cond_dim, d_model // 2),
-                nn.GELU(),
-                nn.Linear(d_model // 2, d_model),
-            )
-            self.cond_scale = nn.Parameter(torch.tensor(float(cond_init_scale)))
-        else:
-            self.cond_proj = None
-            self.cond_scale = None
+
         self.blocks = nn.ModuleList([FFNBlock(d_model, mlp_ratio=mlp_ratio, dropout=dropout) for _ in range(n_layers)])
         self.head = nn.Linear(d_model, out_dim)
 
@@ -139,12 +116,6 @@ class ResidualNet(nn.Module):
         hq = self.q_proj(self.ff(q))                 # (B, N, d)
         hz = self.z_proj(z).unsqueeze(1)             # (B, 1, d)
         h = hq + hz                                  # broadcast over N
-
-        if self.use_cond:
-            if cond is None:
-                raise ValueError("Decoder residual conditioning is enabled but cond is None")
-            hc = self.cond_proj(cond).unsqueeze(1)   # (B, 1, d)
-            h = h + self.cond_scale * hc
 
         for blk in self.blocks:
             h = blk(h)
@@ -163,7 +134,6 @@ class Decoder(nn.Module):
     def __init__(
         self,
         latent_dim: int,
-        cond_dim: int,
         d_model: int,
         n_layers: int,
         n_fourier_baseline_decoder: int,
@@ -173,8 +143,6 @@ class Decoder(nn.Module):
         mlp_ratio: float = 2.0,
         n_vol: int = 2,
         n_drv: int = 4,
-        use_cond_in_residual: bool = False,
-        cond_init_scale: float = 0.01,
         out_activation: str = "none",  # "none" | "sigmoid" | "tanh"
     ):
         super().__init__()
@@ -198,9 +166,6 @@ class Decoder(nn.Module):
             z_dim=latent_dim,
             d_model=d_model,
             out_dim=self.out_dim,
-            cond_dim=cond_dim,
-            use_cond=use_cond_in_residual,
-            cond_init_scale=cond_init_scale,
             n_layers=max(1, n_layers),
             n_fourier=n_fourier_residual_decoder,
             max_freq=max_freq,
@@ -230,6 +195,7 @@ class Decoder(nn.Module):
         self._baseline_no_grad = False
         for p in self.baseline.parameters():
             p.requires_grad_(True)
+
 
     def forward(
         self,

@@ -194,7 +194,7 @@ class DataProcessor:
         self.padding_value = float(self.hyper_parameters.padding_value)
         self.i_eps = float(getattr(self.hyper_parameters, "i_eps", 0.02))
         self.edge_trim_frac = float(getattr(self.hyper_parameters, "edge_trim_frac", 0.02))
-        self.ica_eps_mult = float(getattr(self.hyper_parameters, "ica_eps_mult", 3.0))
+        self.dqdv_eps_mult = float(getattr(self.hyper_parameters, "dqdv_eps_mult", 3.0))
         self.q_max_ah = 5.0
         self.v_dis_fill_value = float(
             getattr(getattr(config, "NORMALIZATION", None), "voltage", {}).get("v_min", 2.5)
@@ -254,8 +254,8 @@ class DataProcessor:
         idx_dv_dis = name_to_idx.get("dVdQ_dis")
         idx_d2_ch = name_to_idx.get("d2VdQ2_ch")
         idx_d2_dis = name_to_idx.get("d2VdQ2_dis")
-        idx_ica_ch = name_to_idx.get("dQdV_ch")
-        idx_ica_dis = name_to_idx.get("dQdV_dis")
+        idx_dqdv_ch = name_to_idx.get("dQdV_ch")
+        idx_dqdv_dis = name_to_idx.get("dQdV_dis")
         idx_h_raw = name_to_idx.get("H_raw")
 
         fit_on_raw = str(norm_cfg.get("fit_on", "train_only")).strip().lower()
@@ -425,13 +425,13 @@ class DataProcessor:
             pclip=float(norm_cfg.get("d2vdq2", {}).get("pclip", 99.5)) if norm_cfg.get("d2vdq2", {}).get("mode", "none") in ("zscore", "robust_zscore") else None,
         )
         _fit_family(
-            (idx_ica_ch, idx_ica_dis),
-            "ica",
-            norm_cfg.get("ica", {"mode": "none"}),
+            (idx_dqdv_ch, idx_dqdv_dis),
+            "dqdv",
+            norm_cfg.get("dqdv", {"mode": "none"}),
             allow_asinh=True,
         )
 
-        for family in ("dvdq", "d2vdq2", "ica", "hyst"):
+        for family in ("dvdq", "d2vdq2", "dqdv", "hyst"):
             norm_stats.setdefault(family, {"mode": "none"})
 
         return features, norm_stats
@@ -456,8 +456,8 @@ class DataProcessor:
         idx_dv_dis = name_to_idx.get("dVdQ_dis")
         idx_d2_ch = name_to_idx.get("d2VdQ2_ch")
         idx_d2_dis = name_to_idx.get("d2VdQ2_dis")
-        idx_ica_ch = name_to_idx.get("dQdV_ch")
-        idx_ica_dis = name_to_idx.get("dQdV_dis")
+        idx_dqdv_ch = name_to_idx.get("dQdV_ch")
+        idx_dqdv_dis = name_to_idx.get("dQdV_dis")
         idx_h_raw = name_to_idx.get("H_raw")
 
         def _iter_family_entries(family: str):
@@ -549,14 +549,14 @@ class DataProcessor:
         if not h_applied:
             _apply_affine((idx_h_raw,), "hyst")
 
-        for sel, stats in _iter_family_entries("ica"):
+        for sel, stats in _iter_family_entries("dqdv"):
             mode = stats.get("mode", "none")
             if mode == "asinh_robust":
                 tau = float(stats["tau"])
                 mu = float(stats["mu"])
                 sig = float(stats["sigma"])
                 clip_k = float(stats.get("clip_k", 5.0))
-                for ch in (idx_ica_ch, idx_ica_dis):
+                for ch in (idx_dqdv_ch, idx_dqdv_dis):
                     if ch is None:
                         continue
                     X = features[sel, ch, :]
@@ -566,7 +566,7 @@ class DataProcessor:
                     np.clip(X, -clip_k, clip_k, out=X)
                     features[sel, ch, :] = X
             elif mode in ("zscore", "robust_zscore"):
-                _apply_affine((idx_ica_ch, idx_ica_dis), "ica")
+                _apply_affine((idx_dqdv_ch, idx_dqdv_dis), "dqdv")
 
         return features
 
@@ -574,7 +574,7 @@ class DataProcessor:
         self,
         return_derivatives: bool = True,
         compute_second_deriv: bool = True,
-        compute_ica: bool = True,
+        compute_dqdv: bool = True,
         compute_hysteresis: bool = True,
         normalize: bool = False,
         norm_cfg: Optional[dict] = None,
@@ -722,8 +722,8 @@ class DataProcessor:
                 interior_dis[: j0 + mtrim] = False
                 interior_dis[max(j0, j1 - mtrim + 1): j1 + 1] = False
 
-            ica_interior_ch = interior_ch.copy()
-            ica_interior_dis = interior_dis.copy()
+            dqdv_interior_ch = interior_ch.copy()
+            dqdv_interior_dis = interior_dis.copy()
 
             def _raw_recip_pos(dv: np.ndarray, interior: np.ndarray) -> np.ndarray:
                 out = np.full_like(dv, self.padding_value, dtype=np.float32)
@@ -734,9 +734,9 @@ class DataProcessor:
                     out[interior] = recip
                 return out
 
-            if compute_ica:
-                dQdV_ch_g = _raw_recip_pos(dVdQ_ch_g, ica_interior_ch)
-                dQdV_dis_g = _raw_recip_pos(dVdQ_dis_g, ica_interior_dis)
+            if compute_dqdv:
+                dQdV_ch_g = _raw_recip_pos(dVdQ_ch_g, dqdv_interior_ch)
+                dQdV_dis_g = _raw_recip_pos(dVdQ_dis_g, dqdv_interior_dis)
             else:
                 dQdV_ch_g = np.full_like(vch_grid, self.padding_value, dtype=np.float32)
                 dQdV_dis_g = np.full_like(vdis_grid, self.padding_value, dtype=np.float32)
@@ -763,7 +763,7 @@ class DataProcessor:
                     d2VdQ2_dis_g = np.full_like(vdis_grid, self.padding_value, dtype=np.float32)
                 features[k, 6, :] = np.where(interior_ch, d2VdQ2_ch_g, self.padding_value).astype(np.float32)
                 features[k, 7, :] = np.where(interior_dis, d2VdQ2_dis_g, self.padding_value).astype(np.float32)
-            if compute_ica:
+            if compute_dqdv:
                 features[k, 8, :] = dQdV_ch_g
                 features[k, 9, :] = dQdV_dis_g
             features[k, 10, :] = hysteresis_grid
@@ -779,9 +779,9 @@ class DataProcessor:
             if compute_second_deriv:
                 masks[k, 6, interior_ch] = 1.0
                 masks[k, 7, interior_dis] = 1.0
-            if compute_ica:
-                masks[k, 8, ica_interior_ch] = 1.0
-                masks[k, 9, ica_interior_dis] = 1.0
+            if compute_dqdv:
+                masks[k, 8, dqdv_interior_ch] = 1.0
+                masks[k, 9, dqdv_interior_dis] = 1.0
             if compute_hysteresis:
                 masks[k, 10, common_valid] = 1.0
             masks[k, 11, :] = 1.0

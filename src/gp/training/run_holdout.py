@@ -115,6 +115,21 @@ def _training_config_with_early_stopping(config: dict[str, Any]) -> dict[str, An
     return training_cfg
 
 
+def _feature_scaler_metadata(feature_scaler: Any) -> dict[str, Any]:
+    return {
+        "method": feature_scaler.method,
+        "center": feature_scaler.center.tolist(),
+        "scale": feature_scaler.scale.tolist(),
+        "column_methods": feature_scaler.column_methods,
+        "column_names": feature_scaler.column_names,
+        "fourier_enabled": feature_scaler.fourier_enabled,
+        "fourier_num_frequencies": feature_scaler.fourier_num_frequencies,
+        "fourier_max_frequency": feature_scaler.fourier_max_frequency,
+        "fourier_include_original": feature_scaler.fourier_include_original,
+        "fourier_frequency_scale": feature_scaler.fourier_frequency_scale,
+    }
+
+
 def _save_inner_fold_rows(rows: list[dict[str, Any]], path: Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(rows).to_csv(path, index=False)
@@ -161,6 +176,7 @@ def _fit_nested_2d_holdout(
     normalization_cfg = dict(config.get("normalization", {}) or {})
     feature_method = str(normalization_cfg.get("feature_method", "standard")).lower()
     feature_column_methods = normalization_cfg.get("feature_column_methods", {})
+    fourier_config = dict(config.get("features", {}).get("fourier_features", {}) or {})
     validation_keys = _validation_keys(frame, config, test_key)
 
     logger.info(
@@ -191,6 +207,7 @@ def _fit_nested_2d_holdout(
                 feature_columns=feature_columns,
                 default_method=feature_method,
                 column_methods=feature_column_methods,
+                fourier_config=fourier_config,
             )
 
             target_scalers: dict[str, Any] = {}
@@ -291,6 +308,7 @@ def _fit_nested_2d_holdout(
         feature_columns=feature_columns,
         default_method=feature_method,
         column_methods=feature_column_methods,
+        fourier_config=fourier_config,
     )
     target_scalers: dict[str, Any] = {}
     y_train_cols = []
@@ -354,13 +372,7 @@ def _fit_nested_2d_holdout(
                 "outer_test_label": str(test_df["crate_label"].iloc[0]),
                 "feature_columns": feature_columns,
                 "target_columns": target_columns,
-                "feature_scaler": {
-                    "method": feature_scaler.method,
-                    "center": feature_scaler.center.tolist(),
-                    "scale": feature_scaler.scale.tolist(),
-                    "column_methods": feature_scaler.column_methods,
-                    "column_names": feature_scaler.column_names,
-                },
+                "feature_scaler": _feature_scaler_metadata(feature_scaler),
                 "target_scalers": {
                     target_column: {
                         "method": target_scalers[target_column].method,
@@ -510,13 +522,7 @@ def run_nested_holdout_training(
                         "outer_test_key": outer_test_key,
                         "outer_test_label": refit_fold.test_label,
                         "feature_columns": refit_fold.feature_columns,
-                        "feature_scaler": {
-                            "method": refit_fold.feature_scaler.method,
-                            "center": refit_fold.feature_scaler.center.tolist(),
-                            "scale": refit_fold.feature_scaler.scale.tolist(),
-                            "column_methods": refit_fold.feature_scaler.column_methods,
-                            "column_names": refit_fold.feature_scaler.column_names,
-                        },
+                        "feature_scaler": _feature_scaler_metadata(refit_fold.feature_scaler),
                         "target_scaler": {
                             "method": refit_fold.target_scaler.method,
                             "center": refit_fold.target_scaler.center.tolist(),

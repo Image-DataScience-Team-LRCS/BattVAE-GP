@@ -69,16 +69,16 @@ def plot_soh_evolution(
         alpha=0.95,
     )
 
-    ax.set_xlabel("Cycle Number", fontsize=12)
-    ax.set_ylabel("State of Health (SOH)", fontsize=12)
+    ax.set_xlabel("Cycle Number", fontsize=22)
+    ax.set_ylabel("State of Health (SOH)", fontsize=22)
     ax.set_xlim(0, 5000)
     ax.set_ylim(0.92, 1.0)
     ax.grid(False)
     ax.spines["top"].set_visible(True)
     ax.spines["right"].set_visible(True)
-    ax.tick_params(direction="out", length=4, width=0.8)
+    ax.tick_params(axis="both", labelsize=18, direction="out", length=4, width=0.8)
 
-    ax.legend(loc="lower left", frameon=False)
+    ax.legend(loc="lower left", frameon=False, fontsize=18)
 
     plt.tight_layout()
 

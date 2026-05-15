@@ -83,9 +83,6 @@ class Encoder(nn.Module):
         dropout: float = 0.0,
         n_fourier: int = 1,
         latent_dim: int = 16,
-        cond_dim: int = 0,
-        use_cond_after_pool: bool = False,
-        cond_init_scale: float = 0.01,
     ):
         super().__init__()
         d_model = int(d_model)
@@ -119,9 +116,8 @@ class Encoder(nn.Module):
         )
 
         # Token assembly currently uses:
-        #   voltage embedding + derivative embedding + Fourier(q_cap) + q_global
-        in_dim = d_vol + d_drv + ff_dim #+ 1  # --- TEMPORARY SIMPLIFICATION: remove q_global from encoder input ---
-        # in_dim = d_vol + ff_dim  # --- TEMPORARY SIMPLIFICATION: remove derivatives from encoder input ---
+        #   voltage embedding + derivative embedding + Fourier(q_cap)
+        in_dim = d_vol + d_drv + ff_dim 
         self.in_proj = nn.Linear(in_dim, d_model)
 
         # Transformer encoder (tested implementation)
@@ -140,19 +136,6 @@ class Encoder(nn.Module):
         self.norm_final = nn.LayerNorm(d_model)
         self.pool = MaskedMeanPool()
 
-        # Optional conditioning after pooling (default off).
-        # This is the least intrusive way: pooled <- pooled + scale * proj(cond)
-        self.use_cond_after_pool = bool(use_cond_after_pool) and (cond_dim > 0)
-        if self.use_cond_after_pool:
-            self.cond_proj = nn.Sequential(
-                nn.Linear(cond_dim, d_model),
-                nn.GELU(),
-                nn.Linear(d_model, d_model),
-            )
-            self.cond_scale = nn.Parameter(torch.tensor(float(cond_init_scale)))
-        else:
-            self.cond_proj = None
-            self.cond_scale = None
 
         self.mu = nn.Linear(d_model, latent_dim)
         self.logvar = nn.Linear(d_model, latent_dim)
@@ -207,12 +190,6 @@ class Encoder(nn.Module):
         h = self.norm_final(h)
 
         pooled = self.pool(h, token_valid_mask)  # (B,d_model)
-
-        # optional conditioning (gated, default off)
-        if self.use_cond_after_pool:
-            if cond is None:
-                raise ValueError("use_cond_after_pool=True but cond is None")
-            pooled = pooled + self.cond_scale * self.cond_proj(cond)
 
         mu = self.mu(pooled)
         logvar = self.logvar(pooled)

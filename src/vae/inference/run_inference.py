@@ -1,6 +1,5 @@
 import torch
 from pathlib import Path
-from src.vae.models.gp_prior import build_gp_prior_model
 from src.vae.inference.checkpoints import load_best_model_checkpoint
 from src.vae.inference.inference import extract_and_save_latent_space
 from src.common.logger.logging import setup_logging, get_logger
@@ -50,15 +49,6 @@ def run_inference(
         logger.error(f"�� Failed to load best model: {str(e)}", exc_info=True)
         sys.exit(1)
 
-    try:
-        # # Load GP model if needed
-        if config.HYPER_PARAMETERS.gp_schedule.enable:
-            gp_model, likelihood, _ = build_gp_prior_model(config, device)
-            gp_model.load_state_dict(checkpoint["gp_state_dict"])
-            likelihood.load_state_dict(checkpoint["likelihood_state_dict"])
-            logger.info("✅ Loaded GP model")
-    except Exception as e:
-        logger.error(f"�� Failed to load GP model: {str(e)}", exc_info=True)
 
     if train_loader.batch_size == None:
         train_loader.batch_size = config.HYPER_PARAMETERS.batch_size
@@ -70,9 +60,17 @@ def run_inference(
         logger.info("Merging datasets...")
         merged_loader = merge_dataloaders(train_loader, val_loader, train_loader.batch_size)
 
+    train_norm_stats = dict(checkpoint.get("train_norm_stats", {}) or {})
+
     # Extract latent space
     logger.info("Extracting latent space...")
-    soh_csv_path = extract_and_save_latent_space(model, merged_loader, config, device)
+    soh_csv_path = extract_and_save_latent_space(
+        model,
+        merged_loader,
+        config,
+        device,
+        train_norm_stats=train_norm_stats,
+    )
     logger.info("Latent space saved! ✨")
     return soh_csv_path
 

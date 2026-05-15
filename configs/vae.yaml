@@ -43,13 +43,6 @@ HYPER_PARAMETERS:
     min_lr: 1.0e-05
     patience: 8
 
-  gp_schedule:
-    enable: false
-    learning_rate: 0.001
-    weight_decay: 0.0
-    scale_factor: 0.001
-    kernel_type: degradation_aware
-    num_inducing: 1024
 
   early_stopping:
     warmup_epochs: 10
@@ -68,13 +61,6 @@ HYPER_PARAMETERS:
     target_factor: 0.0005
     # min_loss: 0.1 
 
-  latent_dependence:
-    enabled: false
-    weight: 0.01
-    cycle_latent_index: 0
-    crate_latent_index: 1
-    swap_penalty_weight: 0.20
-    min_abs_correlation: 0.10
 
   physics_head:
     enabled: false
@@ -109,13 +95,10 @@ NORMALIZATION:
     mode: robust_zscore
     clip_k: 10.0
     pclip: 99.5
-  ica:
+  dqdv:
     mode: asinh_robust
     tau: auto
     clip_k: 10.0
   hyst:
-    mode: phys_minmax
-    clip_k: 10.0
-  dqdv:
-    mode: robust_zscore
+    mode: phys_scale
     clip_k: 10.0

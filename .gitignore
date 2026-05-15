@@ -3,6 +3,9 @@ artifacts/
 data/
 logs/
 run_history/
+artifact*/
+
+END
 
 # Python cache
 __pycache__/

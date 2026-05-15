@@ -17,7 +17,6 @@ from src.common.utils.utils import (
 from src.vae.inference.checkpoints import load_checkpoint_payload
 from src.vae.inference.interpolation_inference import run_interpolation_inference
 from src.vae.inference.run_inference import run_inference, visualize_results
-from src.vae.models.gp_prior import build_gp_prior_model
 from src.vae.models.vae import build_model
 from src.vae.preprocessing.processor import preprocess_main
 from src.vae.training.train import Trainer
@@ -77,27 +76,12 @@ def initialize_model(
     return model
 
 
-def initialize_gp_components(
-    config: FullConfig,
-    device: torch.device,
-) -> Tuple[Any, Any, Any]:
-    gp_model, likelihood, mll = profile_step(
-        "Building GPPR model",
-        build_gp_prior_model,
-        config,
-        device,
-    )
-    return gp_model, likelihood, mll
-
 
 def train_model(
     model: Any,
     config: FullConfig,
     device: torch.device,
     train_norm_stats: dict,
-    gp_model: Any | None,
-    likelihood: Any | None,
-    mll: Any | None,
     train_loader: DataLoader,
     val_loader: DataLoader,
 ) -> Any:
@@ -106,9 +90,6 @@ def train_model(
         config,
         device,
         train_norm_stats=train_norm_stats,
-        gp_model=gp_model,
-        likelihood=likelihood,
-        mll=mll,
     )
     vae, filename = profile_step(
         "Training model",
@@ -157,7 +138,6 @@ def run(
     train_loader: DataLoader | None = None
     val_loader: DataLoader | None = None
     train_norm_stats: dict[str, Any] = {}
-    gp_model = likelihood = mll = None
 
     if config.GENERAL.training or config.GENERAL.resume_training:
         train_loader, val_loader, _, train_norm_stats = load_training_split(config, split="train")
@@ -167,7 +147,7 @@ def run(
                 split="val",
                 frozen_norm_stats=train_norm_stats,
             )
-        gp_model, likelihood, mll = initialize_gp_components(config, device)
+
     elif config.GENERAL.inference or config.GENERAL.inference_interpolation:
         checkpoint = load_checkpoint_payload(config=config, device=device, filename=filename)
         train_norm_stats = dict(checkpoint.get("train_norm_stats", {}) or {})
@@ -190,9 +170,6 @@ def run(
             config,
             device,
             train_norm_stats,
-            gp_model,
-            likelihood,
-            mll,
             train_loader,
             val_loader,
         )

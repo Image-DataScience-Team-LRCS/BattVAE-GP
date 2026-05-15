@@ -25,17 +25,6 @@ class LRSchedule(BaseModel):
     min_lr: float
 
 
-class GPConfig(BaseModel):
-    enable: bool
-    learning_rate: float
-    weight_decay: float
-    scale_factor: float
-    num_inducing: int
-    kernel_type: str = Field(
-        default="RBF", description="Type of kernel to use for Gaussian Process"
-    )
-
-
 class EarlyStoppingConfig(BaseModel):
     patience: int
     min_delta: float
@@ -48,14 +37,6 @@ class KLAnnealingConfig(BaseModel):
     start_factor: float
     target_factor: float
 
-
-class LatentDependenceConfig(BaseModel):
-    enabled: bool = False
-    weight: float = 0.0
-    cycle_latent_index: int = 0
-    crate_latent_index: int = 1
-    swap_penalty_weight: float = 0.25
-    min_abs_correlation: float = 0.0
 
 
 class PhysicsHeadConfig(BaseModel):
@@ -74,14 +55,12 @@ class HyperParameters(BaseModel):
 
     lr_schedule: LRSchedule
     epochs: int
-    gp_schedule: GPConfig
     early_stopping: EarlyStoppingConfig
     soh_factor: float
     use_mask_padding: bool
     padding_value: float
     save_every_reconstructions: bool
     kl_annealing: KLAnnealingConfig
-    latent_dependence: LatentDependenceConfig = LatentDependenceConfig()
     physics_head: PhysicsHeadConfig = PhysicsHeadConfig()
     d_model: int
     num_heads: int
@@ -138,9 +117,8 @@ class NormalizationConfig(BaseModel):
     voltage: Dict[str, Any]
     dvdq: Dict[str, Any]
     d2vdq2: Dict[str, Any]
-    ica: Dict[str, Any]
-    hyst: Dict[str, Any]
     dqdv: Dict[str, Any]
+    hyst: Dict[str, Any]
 
 
 class FullConfig(BaseModel):
@@ -191,6 +169,7 @@ class GPFeaturesConfig(BaseModel):
     target_column: Optional[str] = None
     group_column: str
     cycle_column: str
+    fourier_features: Dict[str, Any] = Field(default_factory=dict)
 
 
 class GPNormalizationConfig(BaseModel):

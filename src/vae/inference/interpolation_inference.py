@@ -324,6 +324,7 @@ def _plot_reconstructed_voltage_by_cycle(
     cycle_numbers: List[int],
     q_grids: List[torch.Tensor],
     reconstructions: List[torch.Tensor],
+    soh_predicted: List[float],
     save_path: Path,
     charge_cmap_name: str = "viridis",
     discharge_cmap_name: str = "rainbow",
@@ -331,6 +332,10 @@ def _plot_reconstructed_voltage_by_cycle(
 ) -> None:
     if not cycle_numbers:
         return
+    if len(soh_predicted) != len(cycle_numbers):
+        raise ValueError(
+            "soh_predicted must have one value per cycle for voltage plot truncation."
+        )
 
     q_cap_all = _stack_tensors(q_grids).numpy()
     recon_all = _stack_tensors(reconstructions)
@@ -345,17 +350,22 @@ def _plot_reconstructed_voltage_by_cycle(
 
     fig, ax = plt.subplots(figsize=(7.4, 5.2), dpi=dpi)
     for idx, cycle in enumerate(cycle_numbers):
+        q_limit = min(max(float(soh_predicted[idx]), 0.0), 1.0)
+        valid = q_cap_all[idx] <= q_limit
+        if not valid.any():
+            continue
+
         ax.plot(
-            q_cap_all[idx],
-            vch_recon_all[idx],
+            q_cap_all[idx][valid],
+            vch_recon_all[idx][valid],
             color=charge_cmap(norm(cycle)),
             lw=1.0,
             alpha=0.7,
             solid_capstyle="round",
         )
         ax.plot(
-            q_cap_all[idx],
-            vdis_recon_all[idx],
+            q_cap_all[idx][valid],
+            vdis_recon_all[idx][valid],
             color=discharge_cmap(norm(cycle)),
             lw=1.0,
             alpha=0.7,
@@ -499,7 +509,7 @@ def run_interpolation_inference(
         filename=filename,
     )
     model.eval()
-    loss_fn = build_reconstruction_loss(config)
+    loss_fn = build_reconstruction_loss(config, train_norm_stats=train_norm_stats)
     dataset_names = [
         name
         for name, dataset_cfg in config.GP_INTERPOLATION_DATASETS.items()
@@ -554,6 +564,7 @@ def run_interpolation_inference(
         all_q_grids: List[torch.Tensor] = []
         all_recons: List[torch.Tensor] = []
         all_latents: List[torch.Tensor] = []
+        all_soh_predicted: List[float] = []
         matched_cycles: List[int] = []
         skipped_cycles: List[int] = []
 
@@ -572,6 +583,7 @@ def run_interpolation_inference(
             all_q_grids.append(decoded["q_cap"])
             all_recons.append(decoded["reconstruction"])
             all_latents.append(decoded["latent"])
+            all_soh_predicted.append(float(decoded["soh_predicted"].squeeze().item()))
             reconstruction_rows.extend(
                 _build_reconstruction_rows(
                     cycle=cycle,
@@ -695,6 +707,7 @@ def run_interpolation_inference(
                 config=config,
             ),
             "all_latents": _stack_tensors(all_latents),
+            "all_soh_predicted": torch.tensor(all_soh_predicted, dtype=torch.float32),
             "cycle_numbers": torch.tensor(matched_cycles, dtype=torch.long),
             "latents": _stack_tensors(collected_latents),
             "inputs": _stack_tensors(collected_inputs),
@@ -724,6 +737,7 @@ def run_interpolation_inference(
             cycle_numbers=all_cycle_numbers,
             q_grids=all_q_grids,
             reconstructions=[reconstruction[:, :2, :] for reconstruction in all_recons],
+            soh_predicted=all_soh_predicted,
             save_path=voltage_plot_path,
         )
 

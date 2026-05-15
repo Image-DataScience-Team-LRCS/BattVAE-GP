@@ -1,5 +1,5 @@
 GENERAL:
-  name: 2D_GP
+  name: Final
   model_type: gp
   evaluation_strategy: simple_holdout
   training: true
@@ -46,12 +46,19 @@ FEATURES:
   group_column: dataset_key
   cycle_column: Cycle
 
+  fourier_features:
+    enabled: false
+    num_frequencies: 4
+    max_frequency: 4.0
+    frequency_scale: linear
+    include_original: true
 
-NORMALIZATION:
-  feature_method: robust
+
+NORMALIZATION:  # minmax, standard, robust
+  feature_method: minmax
   feature_column_methods:
-    Cycle: robust
-    c_rate: robust
+    Cycle: minmax
+    c_rate: minmax
   target_method: robust
   target_column_methods:
     z1: robust
@@ -99,7 +106,7 @@ TRAINING:
 EARLY_STOPPING:
   enabled: true
   monitor: val_nll
-  patience: 8
+  patience: 20
   min_delta: 0.0001
   validation_fraction: 0.1
 

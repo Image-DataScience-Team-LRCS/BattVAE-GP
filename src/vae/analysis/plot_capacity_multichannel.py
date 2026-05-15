@@ -27,7 +27,7 @@ def plot_capacity_multichannel(
       (1) V_ch & V_dis vs q_cap
       (2) Hysteresis (H_raw solid, H_corr dotted) + median ΔH annotation
       (3) dV/dQ (charge & discharge)
-      (4) dQ/dV (ICA; charge & discharge)
+      (4) dQ/dV (charge & discharge)
       (5) d2V/dQ2 (charge & discharge)
       (6) Coverage indicator (q_cap_max; vertical lines)
 
@@ -181,7 +181,7 @@ def plot_capacity_multichannel(
                 ax_dv.plot(q[mdVdh], features[r, IDX_DV_DH, mdVdh],
                         color=color, ls="--", lw=1.2)
 
-            # (4) ICA: dQ/dV
+            # (4) dQ/dV
             if IDX_DQDV_CH is not None:
                 m = masks[r, IDX_DQDV_CH, :].astype(bool)
                 if np.any(m):
@@ -215,7 +215,7 @@ def plot_capacity_multichannel(
         ax_v.set_title("Voltage vs q_cap"); ax_v.set_ylabel("Voltage [V]"); ax_v.grid(True, ls=":", lw=0.6)
         ax_h.set_title("Hysteresis"); ax_h.set_ylabel("V_ch − V_dis [V]"); ax_h.grid(True, ls=":", lw=0.6)
         ax_dv.set_title("dV/dQ"); ax_dv.set_ylabel("V/Ah"); ax_dv.grid(True, ls=":", lw=0.6)
-        ax_dqdv.set_title("ICA: dQ/dV"); ax_dqdv.set_ylabel("Ah/V"); ax_dqdv.grid(True, ls=":", lw=0.6)
+        ax_dqdv.set_title("dQ/dV"); ax_dqdv.set_ylabel("Ah/V"); ax_dqdv.grid(True, ls=":", lw=0.6)
         ax_d2v.set_title("d²V/dQ²"); ax_d2v.set_ylabel("1/Ah²"); ax_d2v.grid(True, ls=":", lw=0.6)
         ax_cov.set_title("Coverage (q_cap_max) and x-axis"); ax_cov.set_ylabel("—"); ax_cov.grid(True, ls=":", lw=0.6)
         for ax in (ax_dv, ax_dqdv, ax_d2v, ax_cov):

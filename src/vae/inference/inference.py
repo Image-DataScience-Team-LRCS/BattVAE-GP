@@ -6,19 +6,24 @@ from src.common.logger.logging import get_logger
 from src.vae.training.loss import LossFactory
 from src.common.utils.utils import save_reconstructed_data
 from src.common.utils.config_schema import FullConfig
-from typing import List, Tuple
+from typing import Any, List, Tuple
 from torch.utils.data import DataLoader
-from src.common.utils.conditioning import build_condition_vector
 from sklearn.metrics import mean_squared_error, r2_score
 
 
 logger = get_logger(__name__)
 
 
-def build_reconstruction_loss(config: FullConfig) -> LossFactory:
-    hyper_params = config.HYPER_PARAMETERS
+def build_reconstruction_loss(
+    config: FullConfig,
+    train_norm_stats: dict[str, Any] | None = None,
+) -> LossFactory:
     norm_cfg = config.NORMALIZATION.model_dump()
-    return LossFactory(norm_cfg=norm_cfg)
+    return LossFactory(
+        norm_cfg=norm_cfg,
+        norm_stats=train_norm_stats,
+        enable_physics_head=config.HYPER_PARAMETERS.physics_head.enabled,
+    )
 
 
 def extract_and_save_latent_space(
@@ -26,6 +31,7 @@ def extract_and_save_latent_space(
     data_loader: DataLoader,
     config: FullConfig,
     device: torch.device,
+    train_norm_stats: dict[str, Any] | None = None,
 ) -> Path:
     """Extract, reconstruct and save VAE outputs"""
     logger.info("Extracting latent space and reconstructions...")
@@ -47,7 +53,11 @@ def extract_and_save_latent_space(
         "reconstruction_error_per_cycle_per_channel": [],
     }
 
-    vae_loss = LossFactory(config.NORMALIZATION.model_dump())
+    vae_loss = LossFactory(
+        config.NORMALIZATION.model_dump(),
+        norm_stats=train_norm_stats,
+        enable_physics_head=config.HYPER_PARAMETERS.physics_head.enabled,
+    )
     with torch.no_grad():
 
         progress_bar = tqdm(
@@ -74,14 +84,6 @@ def extract_and_save_latent_space(
             # Use all incident channels for the encoder (it will drop q_global/H_corr internally)
             inputs = inputs
 
-            cond_vec = build_condition_vector(
-                norm_cycle_numbers=norm_cycle_numbers,
-                charging_rate=charging_rate,
-                norm_nominal_capacity=norm_nominal_capacity,
-                cond_dim=config.HYPER_PARAMETERS.conditional_vector_dim,
-                device=device,
-            )
-
             # Get all VAE outputs
             (
                 reconstruction,
@@ -89,7 +91,7 @@ def extract_and_save_latent_space(
                 logvar,
                 z,
                 soh_predicted,
-            ) = vae(inputs, token_masks, cond_vec)
+            ) = vae(inputs, token_masks)
 
 
             # qo_Ah = torch.full((inputs.shape[0],), 3.902778, dtype=inputs.dtype, device=inputs.device)

@@ -138,6 +138,11 @@ def _scaler_from_metadata(payload: dict[str, Any]) -> ArrayScaler:
         scale=np.asarray(payload["scale"], dtype=float),
         column_methods=payload.get("column_methods"),
         column_names=payload.get("column_names"),
+        fourier_enabled=bool(payload.get("fourier_enabled", False)),
+        fourier_num_frequencies=int(payload.get("fourier_num_frequencies", 0)),
+        fourier_max_frequency=float(payload.get("fourier_max_frequency", 1.0)),
+        fourier_include_original=bool(payload.get("fourier_include_original", False)),
+        fourier_frequency_scale=str(payload.get("fourier_frequency_scale", "linear")).lower(),
     )
 
 
@@ -228,10 +233,10 @@ def _resolve_artifact_path(raw_path: str, config: dict[str, Any]) -> Path:
             return candidate
 
     output_dir = _resolve_output_dir(config)
-    deployment_models_dir = output_dir / "deployment_models"
-    candidate = deployment_models_dir / path.name
-    if candidate.exists():
-        return candidate
+    for artifact_subdir in ("deployment_models", "models", "histories", "predictions"):
+        candidate = output_dir / artifact_subdir / path.name
+        if candidate.exists():
+            return candidate
 
     raise FileNotFoundError(f"Artifact not found: {raw_path}")
 
