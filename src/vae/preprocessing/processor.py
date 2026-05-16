@@ -104,16 +104,16 @@ def preprocess_main(
         #     cmap_name="viridis", # used when color_mode="cycle"
         # )
 
-        # plot_capacity_multichannel_paper(
-        #     features, masks, labels, feature_names,
-        #     source_datasets=["dataset_7"],
-        #     # cycles=[10, 1000, 4500],
-        #     save_dir=Path("artifacts/visualizations"),
-        #     dpi=600,
-        #     combine_datasets=True,
-        #     charge_cmap_name="viridis",
-        #     discharge_cmap_name="rainbow",
-        # )
+        plot_capacity_multichannel_paper(
+            features, masks, labels, feature_names,
+            source_datasets=["dataset_7"],
+            # cycles=[10, 1000, 4500],
+            save_dir=Path("artifacts/visualizations"),
+            dpi=600,
+            combine_datasets=True,
+            charge_cmap_name="viridis",
+            discharge_cmap_name="rainbow",
+        )
 
 
         logger.info(

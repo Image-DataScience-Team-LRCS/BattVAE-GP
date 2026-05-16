@@ -404,8 +404,8 @@ def plot_capacity_multichannel_paper(
             return
 
         cycle_numbers = [int(labels[row, 1]) for row in rows_pick]
-        cyc_min = min(cycle_numbers)
-        cyc_max = max(cycle_numbers)
+        cyc_min =1 # min(cycle_numbers)
+        cyc_max =5000 # max(cycle_numbers)
         charge_cmap = cm.get_cmap(charge_cmap_name)
         discharge_cmap = cm.get_cmap(discharge_cmap_name)
 
@@ -414,11 +414,11 @@ def plot_capacity_multichannel_paper(
             "font.serif": ["STIXGeneral", "Times New Roman", "DejaVu Serif"],
             "mathtext.fontset": "stix",
             "font.size": 10,
-            "axes.labelsize": 11,
-            "axes.titlesize": 11,
-            "xtick.labelsize": 9,
-            "ytick.labelsize": 9,
-            "legend.fontsize": 9,
+            "axes.labelsize": 22,
+            "axes.titlesize": 22,
+            "xtick.labelsize": 20,
+            "ytick.labelsize": 20,
+            "legend.fontsize": 20,
             "figure.facecolor": "white",
             "axes.facecolor": "white",
             "savefig.facecolor": "white",
@@ -426,7 +426,7 @@ def plot_capacity_multichannel_paper(
 
         with plt.rc_context(style):
             fig, axs = plt.subplots(2, 2, figsize=(11.5, 8.6), dpi=dpi, sharex=True)
-            fig.subplots_adjust(left=0.10, right=0.86, bottom=0.10, top=0.90, hspace=0.20, wspace=0.20)
+            fig.subplots_adjust(left=0.10, right=0.86, bottom=0.10, top=0.90, hspace=0.20, wspace=0.30)
 
             ax_v, ax_dv = axs[0]
             ax_d2v, ax_dqdv = axs[1]
