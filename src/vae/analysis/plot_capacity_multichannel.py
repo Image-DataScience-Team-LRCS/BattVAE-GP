@@ -52,8 +52,6 @@ def plot_capacity_multichannel(
     IDX_HRAW    = name_to_idx.get("H_raw", None)
     IDX_HCORR   = name_to_idx.get("H_corr", None)
 
-    q = features[0, IDX_QCAP, :]
-
     # ---- dataset & cycle selection helpers ----
     all_ds = np.unique(labels[:, 0].astype(int)).tolist()
 
@@ -126,6 +124,8 @@ def plot_capacity_multichannel(
 
         for j, r in enumerate(rows_pick):
             cyc_no = int(labels[r, 1])
+            q = features[r, IDX_QCAP, :]
+            q_valid = np.isfinite(q)
 
             if color_mode == "cycle":
                 # Normalize cycle number to [0,1] for colormap
@@ -140,10 +140,10 @@ def plot_capacity_multichannel(
 
             qmax = float(labels[r, 4]) if labels.shape[1] >= 5 else 1.0
 
-            mVch  = masks[r, IDX_VCH,  :].astype(bool)
-            mVdh  = masks[r, IDX_VDCH, :].astype(bool)
-            mdVch = masks[r, IDX_DV_CH, :].astype(bool)
-            mdVdh = masks[r, IDX_DV_DH, :].astype(bool)
+            mVch  = masks[r, IDX_VCH,  :].astype(bool) & q_valid
+            mVdh  = masks[r, IDX_VDCH, :].astype(bool) & q_valid
+            mdVch = masks[r, IDX_DV_CH, :].astype(bool) & q_valid
+            mdVdh = masks[r, IDX_DV_DH, :].astype(bool) & q_valid
 
             # (1) Voltage
             if np.any(mVch):
@@ -155,19 +155,23 @@ def plot_capacity_multichannel(
 
             # (2) Hysteresis (H_raw solid, H_corr dotted)
             if IDX_HRAW is not None:
-                mHr = masks[r, IDX_HRAW, :].astype(bool)
+                mHr = masks[r, IDX_HRAW, :].astype(bool) & q_valid
                 if np.any(mHr):
                     ax_h.plot(q[mHr], features[r, IDX_HRAW, mHr],
                             color=color, lw=1.6, ls="-")
             if IDX_HCORR is not None:
-                mHc = masks[r, IDX_HCORR, :].astype(bool)
+                mHc = masks[r, IDX_HCORR, :].astype(bool) & q_valid
                 if np.any(mHc):
                     ax_h.plot(q[mHc], features[r, IDX_HCORR, mHc],
                             color=color, lw=1.6, ls=":")
 
             # collect ΔH only where BOTH are valid
             if (IDX_HRAW is not None) and (IDX_HCORR is not None):
-                mBoth = masks[r, IDX_HRAW, :].astype(bool) & masks[r, IDX_HCORR, :].astype(bool)
+                mBoth = (
+                    masks[r, IDX_HRAW, :].astype(bool)
+                    & masks[r, IDX_HCORR, :].astype(bool)
+                    & q_valid
+                )
                 if np.any(mBoth):
                     d = features[r, IDX_HRAW, mBoth] - features[r, IDX_HCORR, mBoth]
                     if d.size:
@@ -183,24 +187,24 @@ def plot_capacity_multichannel(
 
             # (4) dQ/dV
             if IDX_DQDV_CH is not None:
-                m = masks[r, IDX_DQDV_CH, :].astype(bool)
+                m = masks[r, IDX_DQDV_CH, :].astype(bool) & q_valid
                 if np.any(m):
                     ax_dqdv.plot(q[m], features[r, IDX_DQDV_CH, m],
                                 color=color, ls="-", lw=1.0)
             if IDX_DQDV_DH is not None:
-                m = masks[r, IDX_DQDV_DH, :].astype(bool)
+                m = masks[r, IDX_DQDV_DH, :].astype(bool) & q_valid
                 if np.any(m):
                     ax_dqdv.plot(q[m], features[r, IDX_DQDV_DH, m],
                                 color=color, ls="--", lw=1.0)
 
             # (5) d2V/dQ2
             if IDX_D2V_CH is not None:
-                m = masks[r, IDX_D2V_CH, :].astype(bool)
+                m = masks[r, IDX_D2V_CH, :].astype(bool) & q_valid
                 if np.any(m):
                     ax_d2v.plot(q[m], features[r, IDX_D2V_CH, m],
                                 color=color, ls="-", lw=1.0)
             if IDX_D2V_DH is not None:
-                m = masks[r, IDX_D2V_DH, :].astype(bool)
+                m = masks[r, IDX_D2V_DH, :].astype(bool) & q_valid
                 if np.any(m):
                     ax_d2v.plot(q[m], features[r, IDX_D2V_DH, m],
                                 color=color, ls="--", lw=1.0)
@@ -318,8 +322,6 @@ def plot_capacity_multichannel_paper(
 
     name_to_idx = {n: i for i, n in enumerate(feature_names)}
     idx_qcap = name_to_idx.get("q_cap", 1)
-    q = features[0, idx_qcap, :]
-
     panel_specs = [
         ("Voltage [V]", name_to_idx.get("V_ch"), name_to_idx.get("V_dis")),
         ("dV/dQ [V/Ah]", name_to_idx.get("dVdQ_ch"), name_to_idx.get("dVdQ_dis")),
@@ -447,6 +449,9 @@ def plot_capacity_multichannel_paper(
             ax_dqdv.set_xlabel("Normalized capacity")
 
             for row_idx, cyc_no in zip(rows_pick, cycle_numbers):
+                q = features[row_idx, idx_qcap, :]
+                q_valid = np.isfinite(q)
+
                 if cyc_max > cyc_min:
                     t = (cyc_no - cyc_min) / (cyc_max - cyc_min)
                 else:
@@ -462,7 +467,7 @@ def plot_capacity_multichannel_paper(
                     (ax_dqdv, "dQ/dV [Ah/V]", panel_specs[3][1], panel_specs[3][2]),
                 ):
                     if idx_charge is not None:
-                        mask_charge = masks[row_idx, idx_charge, :].astype(bool)
+                        mask_charge = masks[row_idx, idx_charge, :].astype(bool) & q_valid
                         if np.any(mask_charge):
                             ax.plot(
                                 q[mask_charge],
@@ -474,7 +479,7 @@ def plot_capacity_multichannel_paper(
                             )
 
                     if idx_discharge is not None:
-                        mask_discharge = masks[row_idx, idx_discharge, :].astype(bool)
+                        mask_discharge = masks[row_idx, idx_discharge, :].astype(bool) & q_valid
                         if np.any(mask_discharge):
                             ax.plot(
                                 q[mask_discharge],

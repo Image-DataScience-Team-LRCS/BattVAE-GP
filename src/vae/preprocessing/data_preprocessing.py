@@ -586,7 +586,13 @@ class DataProcessor:
         del r_ohmic_per_cycle
 
         assert self.data is not None and self.total_cycles is not None
-        if "cum_cap" not in self.data.columns or "dt" not in self.data.columns:
+        raw_capacity_col = "Discharge capacity [A.h]"
+        use_raw_capacity = raw_capacity_col in self.data.columns
+        if not use_raw_capacity and ("cum_cap" not in self.data.columns or "dt" not in self.data.columns):
+            logger.info(
+                "Raw '%s' column is unavailable; integrating capacity from Current and Time columns.",
+                raw_capacity_col,
+            )
             self._integrate_capacity()
 
         df = self.data
@@ -620,26 +626,21 @@ class DataProcessor:
 
         ds_unique = df["source_dataset"].unique().tolist()
         ds_to_idx = {ds: idx for idx, ds in enumerate(ds_unique)}
-        raw_capacity_col = "Discharge capacity [A.h]"
-        use_raw_capacity = raw_capacity_col in df.columns
         if use_raw_capacity:
             logger.info(
-                "Using raw '%s' values for SOH labels with q_max_ah=%.3f. "
-                "Capacity-space sampling keeps the integrated per-cycle coordinate.",
+                "Using raw '%s' values as the capacity coordinate and q_cap_max source with q_max_ah=%.3f.",
                 raw_capacity_col,
                 self.q_max_ah,
             )
         else:
             logger.warning(
-                "Raw '%s' column is unavailable; falling back to integrated Current*dt "
-                "capacity for SOH labels.",
+                "Raw '%s' column is unavailable; falling back to integrated Current*dt capacity.",
                 raw_capacity_col,
             )
 
         for k, ((ds, cyc), g) in enumerate(df.groupby(self.groupby_cols, sort=False)):
             curr = g["Current"].to_numpy(dtype=float)
             volt = g["Voltage"].to_numpy(dtype=float)
-            q_cycle = (g["cum_cap"].to_numpy(dtype=float) - float(g["cum_cap"].iloc[0]))
             raw_capacity = (
                 g[raw_capacity_col].to_numpy(dtype=float) if use_raw_capacity else None
             )
@@ -647,24 +648,47 @@ class DataProcessor:
             charge_raw = curr > self.i_eps
             discharge_raw = curr < -self.i_eps
 
-            def _segment_capacity(Q: np.ndarray, mask: np.ndarray, charge: bool) -> np.ndarray:
-                if not mask.any():
-                    return np.array([], dtype=float)
-                qseg = Q[mask]
-                out = (qseg - qseg[0]) if charge else -(qseg - qseg[0])
-                return np.maximum(out, 0.0)
+            if raw_capacity is not None:
+                capacity_coord = raw_capacity
+                finite_capacity = np.isfinite(capacity_coord)
+                charge_mask = charge_raw & finite_capacity
+                discharge_mask = discharge_raw & finite_capacity
 
-            q_ch = _segment_capacity(q_cycle, charge_raw, charge=True)
-            q_dis = _segment_capacity(q_cycle, discharge_raw, charge=False)
-            v_ch = volt[charge_raw]
-            v_dis = volt[discharge_raw]
+                q_ch = capacity_coord[charge_mask]
+                q_dis = capacity_coord[discharge_mask]
+                v_ch = volt[charge_mask]
+                v_dis = volt[discharge_mask]
 
-            charge_end_ah = min(float(q_ch.max()), self.q_max_ah) if q_ch.size else 0.0
-            if charge_end_ah <= 0.0 and q_dis.size:
-                charge_end_ah = min(float(q_dis.max()), self.q_max_ah)
+                finite_cycle_capacity = capacity_coord[finite_capacity]
+                charge_end_ah = (
+                    min(float(np.max(finite_cycle_capacity)), self.q_max_ah)
+                    if finite_cycle_capacity.size
+                    else 0.0
+                )
 
-            q_ch_soc = np.clip(q_ch, 0.0, self.q_max_ah)
-            q_dis_soc = np.clip(charge_end_ah - q_dis, 0.0, self.q_max_ah)
+                q_ch_soc = np.clip(charge_end_ah - q_ch, 0.0, self.q_max_ah)
+                q_dis_soc = np.clip(charge_end_ah - q_dis, 0.0, self.q_max_ah)
+            else:
+                q_cycle = g["cum_cap"].to_numpy(dtype=float) - float(g["cum_cap"].iloc[0])
+
+                def _segment_capacity(Q: np.ndarray, mask: np.ndarray, charge: bool) -> np.ndarray:
+                    if not mask.any():
+                        return np.array([], dtype=float)
+                    qseg = Q[mask]
+                    out = (qseg - qseg[0]) if charge else -(qseg - qseg[0])
+                    return np.maximum(out, 0.0)
+
+                q_ch = _segment_capacity(q_cycle, charge_raw, charge=True)
+                q_dis = _segment_capacity(q_cycle, discharge_raw, charge=False)
+                v_ch = volt[charge_raw]
+                v_dis = volt[discharge_raw]
+
+                charge_end_ah = min(float(q_ch.max()), self.q_max_ah) if q_ch.size else 0.0
+                if charge_end_ah <= 0.0 and q_dis.size:
+                    charge_end_ah = min(float(q_dis.max()), self.q_max_ah)
+
+                q_ch_soc = np.clip(q_ch, 0.0, self.q_max_ah)
+                q_dis_soc = np.clip(charge_end_ah - q_dis, 0.0, self.q_max_ah)
 
             want_second = bool(compute_second_deriv)
             vch_grid, dVdQ_ch_g, d2VdQ2_ch_g, valid_ch = _pchip_values_and_derivatives(
@@ -674,10 +698,19 @@ class DataProcessor:
                 q_dis_soc, v_dis, grid_abs, self.padding_value, want_second
             )
 
-            common_valid = valid_ch.copy()
-            if not common_valid.any() and valid_dis.any():
-                common_valid = valid_dis.copy()
-                vch_grid[common_valid] = self.v_dis_fill_value
+            common_valid = valid_ch & valid_dis
+            charge_missing_inside = np.zeros_like(common_valid, dtype=bool)
+            discharge_missing_inside = np.zeros_like(common_valid, dtype=bool)
+            if not common_valid.any():
+                if valid_ch.any():
+                    common_valid = valid_ch.copy()
+                    discharge_missing_inside = common_valid & (~valid_dis)
+                elif valid_dis.any():
+                    common_valid = valid_dis.copy()
+                    charge_missing_inside = common_valid & (~valid_ch)
+
+            if charge_missing_inside.any():
+                vch_grid[charge_missing_inside] = self.v_dis_fill_value
                 valid_ch = common_valid.copy()
                 dVdQ_ch_g, d2VdQ2_ch_g = _finite_difference_on_valid_grid(
                     values=vch_grid,
@@ -687,7 +720,6 @@ class DataProcessor:
                     want_second=want_second,
                 )
 
-            discharge_missing_inside = common_valid & (~valid_dis)
             if discharge_missing_inside.any():
                 vdis_grid[discharge_missing_inside] = self.v_dis_fill_value
                 valid_dis = common_valid.copy()
@@ -708,7 +740,8 @@ class DataProcessor:
                     want_second=want_second,
                 )
 
-            _assert_same_branch_masks(common_valid, valid_dis)
+            valid_ch = common_valid.copy()
+            valid_dis = common_valid.copy()
 
             mtrim = max(1, int(self.edge_trim_frac * N))
             interior_ch = common_valid.copy()
