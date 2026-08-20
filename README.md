@@ -42,7 +42,22 @@ Architecture diagrams are stored in `resources/` using these filenames:
 
 ![VAE architecture](resources/VAE.png)
 
-![GP architecture](resources/gp_model.png)
+<p align="center">
+  <strong style="font-size: 28px;">VAE architecture</strong>
+</p>
+
+<p align="center">
+  <span>━━━━━━━━━━━━━━━━━━━━</span>
+</p>
+
+<p align="center">
+  <img src="resources/gp_model.png" alt="GP architecture" width="50%">
+</p>
+
+<p align="center">
+  <strong style="font-size: 28px;">GP architecture</strong>
+  </p>
+
 
 ## Repository Layout
 
