@@ -1,0 +1,44 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the associated arXiv preprint."
+title: "BattVAE-GP: Battery Degradation Surrogate Modeling"
+authors:
+  - family-names: "Raghvender"
+    given-names: "Raghvender"
+  - family-names: "Abid"
+    given-names: "Mahdi"
+  - family-names: "Brosa Planella"
+    given-names: "Ferran"
+  - family-names: "Delacourt"
+    given-names: "Charles"
+  - family-names: "Demortiere"
+    given-names: "Arnaud"
+year: 2026
+license: "MIT"
+url: "https://arxiv.org/abs/2607.11943"
+repository-code: "https://github.com/Image-DataScience-Team-LRCS/BattVAE-GP"
+abstract: >-
+Long-horizon physics-based simulations of battery degradation provide mechanistic insight but remain computationally expensive, limiting their use for dense exploration of operating conditions over extended cycle life. Here, we propose a hybrid physics-probabilistic learning framework for surrogate modeling of lithium-ion battery degradation trajectories at unseen charging rates. Cycle-resolved degradation data generated with a DFN/P2D electrochemical model in PyBaMM are first transformed into capacity-aligned voltage and derivative features and encoded using a Variational Autoencoder (VAE). The resulting two-dimensional latent space organizes degradation trajectories according to both cycle progression and charging protocol. A sparse multitask Gaussian process (GP) is then trained in this latent space using cycle number and C-rate as input variables, providing continuous interpolation of latent degradation dynamics together with posterior uncertainty estimates. Under protocol-level holdout evaluation, the latent-space GP accurately recovers unseen C-rate trajectories and exhibits uncertainty behavior consistent with the support of the training data. When queried at unseen interior C-rates, the model generates latent trajectories that remain coherently positioned between neighboring simulated protocols. Decoding the GP-predicted latent states through the frozen VAE decoder yields smooth voltage-capacity evolution, while Monte Carlo propagation of the GP latent posterior through an auxiliary latent to State of Health (SOH) predictor provides uncertainty-aware SOH estimates. The proposed BattVAE-GP framework therefore offers a computationally efficient and uncertainty-aware surrogate for long-horizon degradation modeling, providing a structured basis for extending battery health prediction toward richer operating conditions and future simulation-experiment fusion.
+keywords:
+  - battery degradation
+  - variational autoencoder
+  - Gaussian process
+  - PyBaMM
+  - uncertainty quantification
+  - surrogate modeling
+preferred-citation:
+  type: article
+  title: "BattVAE-GP: Generative Modeling of Long-Horizon Battery Degradation with Uncertainty Quantification"
+  authors:
+    - family-names: "Raghvender"
+      given-names: "Raghvender"
+    - family-names: "Abid"
+      given-names: "Mahdi"
+    - family-names: "Brosa Planella"
+      given-names: "Ferran"
+    - family-names: "Delacourt"
+      given-names: "Charles"
+    - family-names: "Demortiere"
+      given-names: "Arnaud"
+  year: 2026
+  journal: "arXiv preprint arXiv:2607.11943"
+  url: "https://arxiv.org/abs/2607.11943"

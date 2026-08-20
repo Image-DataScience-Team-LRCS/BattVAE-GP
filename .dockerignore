@@ -1,0 +1,20 @@
+.git
+.venv
+venv
+env
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.ipynb_checkpoints
+.pytest_cache
+.DS_Store
+.vscode
+.idea
+
+# Large or regenerable research outputs
+artifacts
+logs
+run_history
+data/raw
+data/processed

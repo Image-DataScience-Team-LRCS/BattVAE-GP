@@ -1,0 +1,28 @@
+# Core numerical stack
+numpy
+pandas
+scipy
+scikit-learn
+
+# Deep learning and probabilistic modeling
+torch
+gpytorch
+
+# Configuration and validation
+PyYAML
+pydantic>=2
+
+# Plotting and analysis
+matplotlib
+seaborn
+plotly
+
+# Runtime ergonomics
+tqdm
+rich
+
+# Battery simulation provenance / regeneration support
+pybamm
+
+# Notebook support for files under data/raw/
+jupyter
