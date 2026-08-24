@@ -77,7 +77,6 @@ preferred-citation:
       given-names: "Arnaud"
 
   year: 2026
-
-  journal: "arXiv preprint arXiv:2607.11943"
+  status: preprint
 
   url: "https://arxiv.org/abs/2607.11943"
