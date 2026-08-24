@@ -1,4 +1,3 @@
-```yaml
 cff-version: 1.2.0
 
 message: "If you use this software, please cite the associated arXiv preprint."
@@ -82,4 +81,3 @@ preferred-citation:
   journal: "arXiv preprint arXiv:2607.11943"
 
   url: "https://arxiv.org/abs/2607.11943"
-```
